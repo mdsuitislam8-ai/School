@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admit Student with Firebase</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- FIREBASE SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    
+    <style>
+        /* CSS (আগের CSS অপরিবর্তিত) */
+        
+        /* ----- স্টাইল (Style) শুরু ----- */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .page-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            color: #333;
+        }
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin: 0;
+        }
+        .header-session {
+            font-size: 0.9rem;
+            color: #555;
+            font-weight: 400;
+        }
+        .form-card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 20px;
+        }
+        .card-header p {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #555;
+            margin: 0;
+        }
+        .close-buttons button {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: #aaa;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        /* Stepper Styling */
+        .stepper {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .stepper-line {
+            position: absolute;
+            top: 25px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #e0e0e0;
+            z-index: 1;
+            margin: 0 10%;
+        }
+        .stepper-line-active {
+            position: absolute;
+            top: 25px;
+            left: 0;
+            height: 2px;
+            background-color: #007bff;
+            z-index: 1;
+            width: 0%; 
+            transition: width 0.4s;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-grow: 1;
+            position: relative;
+            z-index: 2;
+            cursor: pointer; /* Added for easy switching in testing */
+        }
+        .step:first-child {
+            margin-right: 20%;
+        }
+        .step:last-child {
+            flex-grow: 0;
+        }
+        .step-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+        }
+        .step-circle.icon {
+            background-color: transparent;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-feather"><path d="M20.24 12.24a6 6 0 0 0-8.48-8.48L5.7 10.3c-.63.63-.63 1.65 0 2.28l8.49 8.49a6 6 0 0 0 8.48-8.48z"></path><line x1="12" y1="12" x2="16" y2="16"></line><line x1="8" y1="8" x2="12" y2="12"></line></svg>');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 60%;
+            border: 2px solid #007bff;
+        }
+        .step.active .step-circle {
+            background-color: #007bff;
+            color: white;
+            border: 2px solid #007bff;
+        }
+        .step-label {
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: #777;
+            text-align: center;
+        }
+        .step.active .step-label {
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        /* Form Layout and Elements */
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -10px;
+        }
+        .form-group {
+            padding: 0 10px;
+            margin-bottom: 20px;
+            flex-basis: 33.333%;
+            box-sizing: border-box;
+        }
+        .form-group.full-width {
+            flex-basis: 66.666%;
+        }
+        label {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        label .required {
+            color: red;
+            font-weight: bold;
+            margin-left: 2px;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="date"],
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            color: #555;
+            transition: border-color 0.2s;
+        }
+        select {
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="292.4" height="292.4" viewBox="0 0 292.4 292.4"><path fill="%23666" d="M287 78.4L146.2 219.2 5.4 78.4h281.6z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 10px;
+        }
+        input:invalid:not(:placeholder-shown):required, select:invalid:required {
+            border-color: #dc3545; /* Red border for required but unfilled fields */
+        }
+        
+        /* File Upload Styling (unchanged) */
+        .file-upload-group {
+            display: flex;
+            align-items: center;
+        }
+        .file-upload-display {
+            flex-grow: 1;
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-right: none;
+            border-radius: 4px 0 0 4px;
+            color: #777;
+            background-color: #f8f8f8;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        .file-upload-button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .file-info {
+            font-size: 0.8rem;
+            color: #999;
+            margin-top: 5px;
+            display: block;
+        }
+
+        /* Navigation Buttons */
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            margin-top: 10px;
+        }
+        .form-actions button {
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-left: 10px;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+        .form-actions .prev-btn {
+            background-color: #f1f1f1;
+            color: #333;
+            border: 1px solid #ccc;
+        }
+        .form-actions .next-btn,
+        .form-actions .submit-btn {
+            background-color: #007bff;
+            color: white;
+            border: 1px solid #007bff;
+        }
+        .form-actions button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Step Content Hiding */
+        .form-step {
+            display: none;
+        }
+        .form-step.active {
+            display: block;
+        }
+        
+        /* Parent Selection Styling */
+        .parent-option-container {
+            border: 1px solid #007bff;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+            background-color: #e9f5ff;
+        }
+
+        /* Add Parent Div Styling */
+        #add-parent-section {
+            /* display: none; */
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ffcc00;
+            background-color: #fffacd;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        /* Media Queries (unchanged) */
+        @media (max-width: 992px) {
+            .form-group, .form-group.full-width {
+                flex-basis: 50%;
+            }
+        }
+        @media (max-width: 576px) {
+            .form-group, .form-group.full-width {
+                flex-basis: 100%;
+            }
+        }
+        /* ----- স্টাইল (Style) শেষ ----- */
+    </style>
+</head>
+<body>
+
+<div class="page-container">
+    <!-- Header -->
+    <header class="header">
+        <h1>
+            <span style="font-size: 1.2rem; color: #777; margin-right: 10px;">&larr;</span>
+            Admit Student
+        </h1>
+        <div class="header-session">
+            Current Session: <span style="font-weight: 500;">2025-2026</span>
+        </div>
+    </header>
+    
+    <!-- Main Form Card -->
+    <div class="form-card">
+        <div class="card-header">
+            <p>Please fill The form Below To Admit A New Student</p>
+            <div class="close-buttons">
+                <button title="Minimize">&minus;</button>
+                <button title="Close">&times;</button>
+            </div>
+        </div>
+
+        <!-- Stepper -->
+        <div class="stepper">
+            <div class="stepper-line"></div>
+            <div class="stepper-line-active" id="stepper-progress"></div>
+            <div class="step active" data-step="1">
+                <div class="step-circle icon" id="step-circle-1"></div>
+                <div class="step-label">Personal data</div>
+            </div>
+            <div class="step" data-step="2">
+                <div class="step-circle" id="step-circle-2">2</div>
+                <div class="step-label">Student Data</div>
+            </div>
+        </div>
+
+        <!-- Multi-Step Form Container -->
+        <form id="admission-form">
+            
+            <!-- Step 1: Personal Data -->
+            <div class="form-step active" id="step-1-content">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="full-name">Full Name: <span class="required">*</span></label>
+                        <input type="text" id="full-name" placeholder="Full Name" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="address">Address: <span class="required">*</span></label>
+                        <input type="text" id="address" placeholder="Address" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="email">Email Address:</label>
+                        <input type="email" id="email" placeholder="Email Address">
+                    </div>
+                    <div class="form-group">
+                        <label for="gender">Gender: <span class="required">*</span></label>
+                        <select id="gender" required>
+                            <option value="" disabled selected hidden>Choose...</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone: <span class="required">*</span></label>
+                        <input type="text" id="phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="telephone">Telephone:</label>
+                        <input type="text" id="telephone">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dob">Date of Birth:</label>
+                        <input type="date" id="dob">
+                    </div>
+                    <div class="form-group">
+                        <label for="nationality">Nationality: <span class="required">*</span></label>
+                        <select id="nationality" required>
+                            <option value="" disabled selected hidden>Choose...</option>
+                            <option value="Bangladeshi">Bangladeshi</option>
+                            <option value="Indian">Indian</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="state">State: <span class="required">*</span></label>
+                        <select id="state" required>
+                            <option value="" disabled selected hidden>Choose..</option>
+                            <option value="Dhaka">Dhaka</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="district">District: <span class="required">*</span></label>
+                        <select id="district" required>
+                            <option value="" disabled selected hidden>Select State F...</option>
+                            <option value="Dhaka">Dhaka</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="blood-group">Blood Group:</label>
+                        <select id="blood-group">
+                            <option value="" disabled selected hidden>Choose...</option>
+                            <option value="A+">A+</option>
+                            <option value="O+">O+</option>
+                            <option value="B+">B+</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="passport-photo">Upload Passport Photo:</label>
+                        <div class="file-upload-group">
+                            <span class="file-upload-display" id="file-name-display">No file selected</span>
+                            <input type="file" id="passport-photo" name="passport-photo" accept="image/jpeg, image/png" style="display: none;" onchange="document.getElementById('file-name-display').textContent = this.files[0] ? this.files[0].name : 'No file selected'">
+                            <button type="button" class="file-upload-button" onclick="document.getElementById('passport-photo').click()">Choose File</button>
+                        </div>
+                        <span class="file-info">Accepted Images: jpeg, png. Max file size 2Mb</span>
+                    </div>
+                </div>
+            </div> <!-- End of Step 1 -->
+
+            <!-- Step 2: Student Data -->
+            <div class="form-step" id="step-2-content">
+                <div class="form-row">
+                    <!-- Class Selection -->
+                    <div class="form-group">
+                        <label for="class-select">Select Class: <span class="required">*</span></label>
+                        <select id="class-select" required>
+                            <option value="" disabled selected hidden>Choose Class</option>
+                            <option value="1">Class 1</option>
+                            <option value="2">Class 2</option>
+                        </select>
+                    </div>
+
+                    <!-- Section Selection -->
+                    <div class="form-group">
+                        <label for="section-select">Selected Section: <span class="required">*</span></label>
+                        <select id="section-select" required>
+                            <option value="" disabled selected hidden>Choose Section</option>
+                            <option value="A">Section A</option>
+                            <option value="B">Section B</option>
+                        </select>
+                    </div>
+
+                    <!-- Parents Find or Add -->
+                    <div class="form-group">
+                        <label for="parent-select">Selected Parents: <span class="required">*</span></label>
+                        <select id="parent-select" onchange="toggleParentSection(this.value)" required>
+                            <option value="" selected hidden>Find or Add Parent</option>
+                            <option value="add">Add New Parent</option>
+                            <option value="find">Find Existing Parent (ID)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- FIND Parent (Optional - if 'find' is selected) -->
+                <div class="form-row parent-option-container" id="find-parent-section" style="display: none;">
+                    <div class="form-group full-width">
+                        <label for="existing-parent-id">Existing Parent ID: <span class="required">*</span></label>
+                        <input type="text" id="existing-parent-id" placeholder="Enter Parent ID (e.g., Firebase Document ID)">
+                    </div>
+                </div>
+
+                <!-- ADD Parent Section (Initially hidden) -->
+                <div id="add-parent-section" style="display: none;">
+                    <h3 style="margin-top: 0; color: #d49a00;">Add New Parent Details</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="father-name">Father's Name: <span class="required">*</span></label>
+                            <input type="text" id="father-name" placeholder="Father's Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="mother-name">Mother's Name:</label>
+                            <input type="text" id="mother-name" placeholder="Mother's Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="guardian-name">Guardian Name:</label>
+                            <input type="text" id="guardian-name" placeholder="Guardian Name (Optional)">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="parent-phone">Phone Number: <span class="required">*</span></label>
+                            <input type="text" id="parent-phone" placeholder="Parent Phone Number" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="parent-password">Password (for Parent Account): <span class="required">*</span></label>
+                            <input type="password" id="parent-password" placeholder="Set Password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="parent-email">Email Address: <span class="required">*</span></label>
+                            <input type="email" id="parent-email" placeholder="Parent Email (Required for Auth)" required>
+                        </div>
+                    </div>
+                    <button type="button" class="next-btn" style="float: right;" onclick="completeParentForm()">Complete Parent Form</button>
+                    <div style="clear: both;"></div>
+                </div>
+                
+                <!-- Final Student Details (Shown after parent is selected/added) -->
+                <div class="form-row" id="final-student-details" style="display: none; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+                    <h3 style="width: 100%; margin-top: 0; color: #007bff;">Final Admission Details</h3>
+                    <div class="form-group">
+                        <label for="roll-id">Input Roll/ID: <span class="required">*</span></label>
+                        <input type="text" id="roll-id" placeholder="Student Roll/ID" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="admitted-year">Admitted Year: <span class="required">*</span></label>
+                        <select id="admitted-year" required>
+                            <option value="" disabled selected hidden>Select Year</option>
+                            <option value="2025">2025</option>
+                            <option value="2024">2024</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Parent Account Status:</label>
+                        <input type="text" id="parent-status" value="Not Selected" readonly style="background-color: #e9ecef; font-weight: bold;">
+                    </div>
+                </div>
+            </div> <!-- End of Step 2 -->
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button type="button" class="prev-btn" id="prev-btn" disabled>
+                    <span style="margin-right: 5px;">&larr;</span> Previous
+                </button>
+                <button type="button" class="next-btn" id="next-btn">
+                    Next <span style="margin-left: 5px;">&rarr;</span>
+                </button>
+                <button type="submit" class="next-btn submit-btn" id="submit-btn" style="display: none;">
+                    Submit
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // ----------------------------------------------------
+    //  STEP 1: FIREBASE CONFIGURATION (ইউজার প্রদত্ত কনফিগ)
+    // ----------------------------------------------------
+    const firebaseConfig = {
+        apiKey: "AIzaSyAjoRYAXQa4J43L4oLmHmUoK7ZqMKCdrxI",
+        authDomain: "programme-7eb45.firebaseapp.com",
+        databaseURL: "https://programme-7eb45-default-rtdb.firebaseio.com",
+        projectId: "programme-7eb45",
+        storageBucket: "programme-7eb45.firebasestorage.app",
+        messagingSenderId: "431090813085",
+        appId: "1:431090813085:web:496fc0d8bb5e57af53ec74",
+        measurementId: "G-FE49VB7F1B"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+    // ----------------------------------------------------
+    // Firestore Collection Path Setup
+    const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
+    const getStudentCollectionPath = () => `/artifacts/${appId}/public/data/students`;
+    const getParentCollectionPath = () => `/artifacts/${appId}/public/data/parents`;
+
+    let currentStep = 1;
+    const totalSteps = 2;
+    let parentFormCompleted = false;
+    let newParentData = {}; 
+
+    // স্টেপ পরিবর্তন করার ফাংশন
+    function updateStep(step) {
+        currentStep = step;
+
+        document.querySelectorAll('.form-step').forEach(content => content.classList.remove('active'));
+        document.getElementById(`step-${step}-content`).classList.add('active');
+
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.querySelector(`.step[data-step="${step}"]`).classList.add('active');
+
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const submitBtn = document.getElementById('submit-btn');
+
+        // বাটনের লজিক
+        if (step === 1) {
+            prevBtn.disabled = true;
+            nextBtn.style.display = 'inline-block';
+            submitBtn.style.display = 'none';
+        } else if (step === totalSteps) {
+            prevBtn.disabled = false;
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'inline-block';
+        } else {
+            prevBtn.disabled = false;
+            nextBtn.style.display = 'inline-block';
+            submitBtn.style.display = 'none';
+        }
+        
+        // প্রোগ্রেস লাইন আপডেট
+        const progress = (step - 1) / (totalSteps - 1) * 100;
+        document.getElementById('stepper-progress').style.width = `${progress * 80 / 100}%`; // 80% of total width for visual correction
+    }
+
+    // Step 1 ভ্যালিডেশন
+    function validateStep1() {
+        const requiredFields = [
+            'full-name', 'address', 'gender', 'phone', 'nationality', 'state', 'district'
+        ];
+        
+        let isValid = true;
+        requiredFields.forEach(id => {
+            const input = document.getElementById(id);
+            if (!input.value) {
+                isValid = false;
+                input.style.borderColor = 'red';
+            } else {
+                input.style.borderColor = '#ccc';
+            }
+        });
+        return isValid;
+    }
+
+    // Next বাটন ক্লিক করলে
+    document.getElementById('next-btn').addEventListener('click', () => {
+        if (currentStep === 1) {
+            if (validateStep1()) {
+                updateStep(currentStep + 1);
+            } else {
+                alert('Please fill out all required fields in Personal Data.');
+            }
+        }
+    });
+
+    // Previous বাটন ক্লিক করলে
+    document.getElementById('prev-btn').addEventListener('click', () => {
+        if (currentStep > 1) {
+            updateStep(currentStep - 1);
+        }
+    });
+
+    // Find/Add Parent অপশন অনুযায়ী সেকশন পরিবর্তন
+    function toggleParentSection(value) {
+        const addSection = document.getElementById('add-parent-section');
+        const findSection = document.getElementById('find-parent-section');
+        const finalDetails = document.getElementById('final-student-details');
+        const parentStatus = document.getElementById('parent-status');
+
+        addSection.style.display = 'none';
+        findSection.style.display = 'none';
+        finalDetails.style.display = 'none';
+        parentStatus.value = 'Not Selected';
+        parentFormCompleted = false;
+
+        if (value === 'add') {
+            addSection.style.display = 'block';
+            parentStatus.value = 'New Parent (Pending)';
+            document.getElementById('parent-select').classList.add('active');
+        } else if (value === 'find') {
+            findSection.style.display = 'flex';
+            parentStatus.value = 'Existing Parent (Pending)';
+            document.getElementById('final-student-details').style.display = 'flex';
+        }
+        
+        // If 'add' is chosen, final details are shown after 'Complete Parent Form'
+        if (value !== 'add') {
+            document.getElementById('final-student-details').style.display = 'flex';
+        }
+    }
+
+    // "Complete Parent Form" বাটন ক্লিক করলে (New Parent Data Lock)
+    function completeParentForm() {
+        const requiredParentFields = [
+            'father-name', 'parent-phone', 'parent-password', 'parent-email'
+        ];
+
+        let isValid = true;
+        requiredParentFields.forEach(id => {
+            const input = document.getElementById(id);
+            if (!input.value) {
+                isValid = false;
+                input.style.borderColor = 'red';
+            } else {
+                input.style.borderColor = '#ccc';
+            }
+        });
+
+        if (!isValid) {
+            alert("Please fill all required fields in the 'Add New Parent' section.");
+            return;
+        }
+
+        // প্যারেন্টের ডেটা সংগ্রহ
+        newParentData = {
+            fatherName: document.getElementById('father-name').value,
+            motherName: document.getElementById('mother-name').value,
+            guardianName: document.getElementById('guardian-name').value,
+            phone: document.getElementById('parent-phone').value,
+            email: document.getElementById('parent-email').value,
+            password: document.getElementById('parent-password').value, // Auth-এর জন্য
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        // UI আপডেট
+        document.getElementById('add-parent-section').style.display = 'none';
+        document.getElementById('parent-status').value = 'New Parent (Details Saved)';
+        document.getElementById('final-student-details').style.display = 'flex';
+        parentFormCompleted = true;
+        alert("Parent form complete. Now fill the final student details.");
+    }
+
+
+    // ----------------------------------------------------
+    //  STEP 2: FORM SUBMISSION (FIREBASE LOGIC)
+    // ----------------------------------------------------
+    document.getElementById('admission-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const parentOption = document.getElementById('parent-select').value;
+        const rollId = document.getElementById('roll-id').value;
+        const admittedYear = document.getElementById('admitted-year').value;
+
+        // Step 2 Validation (Basic)
+        if (!document.getElementById('class-select').value || !document.getElementById('section-select').value) {
+            alert('Please select Class and Section.');
+            return;
+        }
+        if (parentOption === 'add' && !parentFormCompleted) {
+             alert('Please click "Complete Parent Form" after filling the details.');
+            return;
+        }
+        if (parentOption === 'find' && !document.getElementById('existing-parent-id').value) {
+            alert('Please enter Existing Parent ID.');
+            return;
+        }
+        if (!rollId || !admittedYear) {
+            alert('Please enter Roll/ID and Admitted Year.');
+            return;
+        }
+        
+        try {
+            document.getElementById('submit-btn').disabled = true;
+            document.getElementById('submit-btn').textContent = 'Processing...';
+
+            let parentId = null;
+
+            if (parentOption === 'add') {
+                // 1. Create User in Firebase Authentication (for Parent)
+                const userCredential = await auth.createUserWithEmailAndPassword(newParentData.email, newParentData.password);
+                const uid = userCredential.user.uid;
+                
+                // 2. Save Parent Details in Firestore (using the Auth UID as Document ID)
+                await db.collection(getParentCollectionPath()).doc(uid).set({
+                    ...newParentData,
+                    uid: uid,
+                    password: null, // Remove password from Firestore for security
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                parentId = uid;
+                
+            } else if (parentOption === 'find') {
+                parentId = document.getElementById('existing-parent-id').value;
+                // Add a simple check for parent existence (optional but recommended)
+            }
+
+
+            // 3. Save Student Data in Firestore
+            const studentData = {
+                fullName: document.getElementById('full-name').value,
+                address: document.getElementById('address').value,
+                email: document.getElementById('email').value,
+                gender: document.getElementById('gender').value,
+                phone: document.getElementById('phone').value,
+                dob: document.getElementById('dob').value,
+                nationality: document.getElementById('nationality').value,
+                bloodGroup: document.getElementById('blood-group').value,
+                state: document.getElementById('state').value,
+                district: document.getElementById('district').value,
+                classId: document.getElementById('class-select').value,
+                sectionId: document.getElementById('section-select').value,
+                rollId: rollId,
+                admittedYear: admittedYear,
+                parentId: parentId, // Link student to parent
+                status: 'active',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            await db.collection(getStudentCollectionPath()).add(studentData);
+
+
+            // SUCCESS
+            alert(`✅ Admission Successful!\nStudent: ${studentData.fullName}\nParent Linked ID: ${parentId}`);
+            document.getElementById('admission-form').reset();
+            updateStep(1); // Reset to Step 1
+            document.getElementById('parent-status').value = 'Not Selected';
+            parentFormCompleted = false;
+            toggleParentSection('');
+
+        } catch (error) {
+            console.error("Admission Failed:", error);
+            alert(`❌ Admission Failed: ${error.message}`);
+            
+        } finally {
+            document.getElementById('submit-btn').disabled = false;
+            document.getElementById('submit-btn').textContent = 'Submit';
+        }
+    });
+
+    // ফর্ম লোড হওয়ার পরে প্রথম স্টেপ সেট করা
+    window.onload = () => updateStep(1);
+</script>
+</body>
+</html>

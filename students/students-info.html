@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ছাত্র তালিকা ও অ্যাকশন ড্যাশবোর্ড</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    
+    <style>
+        body { font-family: 'Roboto', sans-serif; background-color: #f4f6f9; }
+        
+        /* Ensure table header sticks to the top during horizontal scroll on mobile */
+        .sticky-header th {
+            white-space: nowrap;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+
+        /* Responsive styling for the Name column to keep it readable */
+        .name-cell {
+            min-width: 180px; 
+        }
+
+        /* Action buttons styling for better touch target */
+        .action-icon {
+            cursor: pointer;
+            padding: 5px; 
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .action-icon:hover {
+            opacity: 0.8;
+            background-color: #f0f4ff;
+        }
+        
+        /* Mobile Specific Adjustments for Table - Important for forcing horizontal scroll */
+        @media (max-width: 640px) {
+            .data-table-wrapper {
+                min-width: 700px; /* Force minimum width for horizontal scrolling */
+            }
+            /* Adjust padding for a tighter mobile view */
+            .px-6 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+            .py-4 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+        }
+    </style>
+</head>
+<body class="p-2 sm:p-4 md:p-8">
+
+<div class="max-w-full lg:max-w-7xl mx-auto bg-white rounded-xl shadow-2xl p-4 sm:p-6 md:p-8">
+    <header class="mb-6 pb-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-800 flex items-center mb-2 sm:mb-0">
+            <i data-lucide="users" class="w-6 h-6 mr-3 text-blue-600"></i>
+            ছাত্র তথ্য - তালিকা ড্যাশবোর্ড
+        </h1>
+        <span class="text-xs sm:text-sm text-gray-500">বর্তমান শিক্ষাবর্ষ: 2025-2026</span>
+    </header>
+
+    <div class="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-end">
+        <div class="w-full md:w-auto flex-grow">
+            <label for="class-filter" class="text-sm font-medium text-gray-700 block mb-1">ক্লাস নির্বাচন করুন:</label>
+            <select id="class-filter" onchange="filterStudents()" class="appearance-none w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out">
+                <option value="all">সমস্ত ক্লাস</option>
+                </select>
+        </div>
+
+        <div class="w-full md:w-64">
+            <label for="search-input" class="text-sm font-medium text-gray-700 block mb-1">খোঁজ করুন (নাম/রোল):</label>
+            <input type="text" id="search-input" onkeyup="filterStudents()" placeholder="নাম, রোল, বা ADM NO" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out">
+        </div>
+        
+        <div class="flex space-x-2 w-full md:w-auto">
+            <button class="flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg shadow-md hover:bg-green-600 transition duration-150" onclick="alert('Excel Export feature requested!')">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-1"></i> Excel
+            </button>
+            <button class="flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg shadow-md hover:bg-red-600 transition duration-150" onclick="alert('PDF Export feature requested!')">
+                <i data-lucide="file-text" class="w-4 h-4 mr-1"></i> PDF
+            </button>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
+        <div class="data-table-wrapper"> <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50 sticky-header">
+                    <tr>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">S/N</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">ছবি</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider name-cell">নাম, ADM NO</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">রোল</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">ক্লাস ও সেকশন</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[250px]">ঠিকানা ও যোগাযোগ</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">অ্যাকশন</th>
+                    </tr>
+                </thead>
+                <tbody id="student-table-body" class="bg-white divide-y divide-gray-200">
+                    </tbody>
+            </table>
+        </div>
+
+        <div id="loading-message" class="p-8 text-center text-gray-500">ছাত্রের ডেটা লোড হচ্ছে...</div>
+        <div id="no-data-message" class="p-8 text-center text-red-500 font-medium hidden">
+            এই ক্লাসে কোনো ছাত্রের ডেটা পাওয়া যায়নি।
+        </div>
+        <div id="error-message" class="p-8 text-center text-red-700 font-medium hidden">
+            ডেটা লোড করতে সমস্যা হয়েছে।
+        </div>
+    </div>
+</div>
+
+<div id="confirm-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300 opacity-0 pointer-events-none">
+    <div id="confirm-modal-content" class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-11/12 transform scale-100 transition-transform duration-300">
+        <h3 class="text-xl font-bold text-red-600 border-b pb-2 mb-3 flex items-center">
+            <i data-lucide="alert-triangle" class="w-5 h-5 mr-2"></i> নিশ্চিত করুন
+        </h3>
+        <p id="confirm-message" class="text-gray-700 mb-6"></p>
+        <div class="flex justify-end space-x-3">
+            <button onclick="closeModal('confirm-modal')" 
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">
+                বাতিল
+            </button>
+            <button id="confirm-button" 
+                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition duration-150 shadow-md">
+                ডিলিট করুন
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="action-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300 opacity-0 pointer-events-none">
+    </div>
+
+<script>
+    // --- Firebase Configuration (Provided by User) ---
+    const explicitFirebaseConfig = {
+      apiKey: "AIzaSyAjoRYAXQa4J43L4oLmHmUoK7ZqMKCdrxI",
+      authDomain: "programme-7eb45.firebaseapp.com",
+      databaseURL: "https://programme-7eb45-default-rtdb.firebaseio.com",
+      projectId: "programme-7eb45",
+      storageBucket: "programme-7eb45.firebasestorage.app",
+      messagingSenderId: "431090813085",
+      appId: "1:431090813085:web:496fc0d8bb5e57af53ec74",
+      measurementId: "G-FE49VB7F1B"
+    };
+
+    // Use environment variables if available, otherwise use explicit config
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : explicitFirebaseConfig; 
+    const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
+    
+    let db, auth;
+    let allStudents = [];
+    let uniqueClasses = new Set();
+
+    const studentTableBody = document.getElementById('student-table-body');
+    const classFilterSelect = document.getElementById('class-filter');
+    const searchInput = document.getElementById('search-input');
+    const loadingMessage = document.getElementById('loading-message');
+    const noDataMessage = document.getElementById('no-data-message');
+    const errorMessage = document.getElementById('error-message');
+
+    // Firestore Collection Path
+    const getStudentCollectionPath = () => `/artifacts/${appId}/public/data/students`;
+    const getParentCollectionPath = () => `/artifacts/${appId}/public/data/parents`; // Assumes 'parents' collection
+
+    // --- Firebase Initialization ---
+    try {
+        const app = firebase.initializeApp(firebaseConfig);
+        db = app.firestore();
+        auth = app.auth();
+        firebase.firestore.setLogLevel('debug'); 
+        
+        // --- Authentication & Data Listener Setup ---
+        auth.onAuthStateChanged(user => {
+            if (!user) {
+                // Anonymous sign-in for testing access
+                auth.signInAnonymously().then(() => startDataListener())
+                    .catch(err => {
+                        console.error("Anonymous sign-in failed:", err);
+                        errorMessage.textContent = `অ্যানোনিমাস সাইন-ইন ত্রুটি: ${err.message}`;
+                        errorMessage.classList.remove('hidden');
+                    });
+            } else {
+                startDataListener();
+            }
+        });
+        
+    } catch (error) {
+        console.error("Firebase Initialization Failed:", error);
+        loadingMessage.classList.add('hidden');
+        errorMessage.textContent = `প্রাথমিকীকরণ ত্রুটি: ${error.message}`;
+        errorMessage.classList.remove('hidden');
+    }
+
+    // --- Data Fetching (Real-time Listener) ---
+    function startDataListener() {
+        if (!db) return;
+
+        const studentsRef = db.collection(getStudentCollectionPath());
+        
+        // Using onSnapshot for real-time data listening
+        studentsRef.onSnapshot(snapshot => {
+            loadingMessage.classList.add('hidden');
+            allStudents = [];
+            uniqueClasses.clear();
+            
+            if (snapshot.empty) {
+                noDataMessage.textContent = "কোনো ছাত্রের ডেটা পাওয়া যায়নি।";
+                noDataMessage.classList.remove('hidden');
+                renderTable(); 
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                data.id = doc.id; // Store Firestore Document ID
+                allStudents.push(data);
+                if (data.classId) {
+                    uniqueClasses.add(data.classId);
+                }
+            });
+
+            populateClassFilter();
+            filterStudents(); // Render the table with default filter (all)
+
+        }, err => {
+            console.error("Firestore Listener Error:", err);
+            loadingMessage.classList.add('hidden');
+            errorMessage.textContent = `ডেটাবেস থেকে তথ্য আনতে ব্যর্থ: ${err.message}`;
+            errorMessage.classList.remove('hidden');
+        });
+    }
+
+    // --- UI Update: Class Filter Dropdown ---
+    function populateClassFilter() {
+        // Clear existing options except 'all'
+        while (classFilterSelect.options.length > 1) {
+            classFilterSelect.remove(1);
+        }
+        
+        // Add unique class options, sorted numerically
+        const sortedClasses = Array.from(uniqueClasses).sort((a, b) => {
+            const numA = parseInt(a) || Infinity;
+            const numB = parseInt(b) || Infinity;
+            return numA - numB;
+        });
+
+        sortedClasses.forEach(className => {
+            const option = document.createElement('option');
+            option.value = className;
+            option.textContent = `ক্লাস ${className}`;
+            classFilterSelect.appendChild(option);
+        });
+    }
+
+    // --- Data Filtering & Rendering ---
+    function filterStudents() {
+        const selectedClass = classFilterSelect.value;
+        const searchText = searchInput.value.toLowerCase().trim();
+        let filteredStudents = allStudents;
+
+        // 1. Filter by Class
+        if (selectedClass !== 'all') {
+            filteredStudents = filteredStudents.filter(student => 
+                student.classId === selectedClass
+            );
+        }
+
+        // 2. Filter by Search Text
+        if (searchText) {
+            filteredStudents = filteredStudents.filter(student => {
+                const name = (student.fullName || '').toLowerCase();
+                const roll = (student.rollId || '').toString().toLowerCase();
+                const admNo = (student.admissionNo || '').toLowerCase();
+                
+                return name.includes(searchText) || roll.includes(searchText) || admNo.includes(searchText);
+            });
+        }
+        
+        // 3. Sort by Roll ID (Client-side)
+        filteredStudents.sort((a, b) => (a.rollId || Infinity) - (b.rollId || Infinity));
+        
+        renderTable(filteredStudents);
+    }
+
+    function renderTable(students = []) {
+        studentTableBody.innerHTML = '';
+        
+        if (students.length === 0) {
+            noDataMessage.textContent = "আপনার নির্বাচনের ভিত্তিতে কোনো ছাত্রের ডেটা পাওয়া যায়নি।";
+            noDataMessage.classList.remove('hidden');
+            return;
+        }
+
+        noDataMessage.classList.add('hidden');
+
+        students.forEach((student, index) => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50 transition duration-150';
+            
+            // Default/Placeholder values
+            const fullName = student.fullName || 'নাম নেই';
+            const admNo = student.admissionNo || 'N/A';
+            const rollId = student.rollId || 'N/A';
+            const classId = student.classId || 'N/A';
+            const sectionId = student.sectionId || 'N/A';
+            const address = student.address || 'ঠিকানা নেই';
+            const phone = student.phone || 'যোগাযোগ নেই';
+            const photoUrl = student.photoUrl || 'https://placehold.co/50x50/3b82f6/ffffff?text=P.P'; // Blue placeholder
+
+            row.innerHTML = `
+                <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${index + 1}</td>
+                <td class="px-3 py-4 whitespace-nowrap">
+                    <img class="h-10 w-10 rounded-full object-cover ring-2 ring-blue-200" 
+                        src="${photoUrl}" 
+                        alt="Student Photo"
+                        onerror="this.onerror=null; this.src='https://placehold.co/50x50/3b82f6/ffffff?text=P.P';"
+                    >
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 name-cell">
+                    <div class="font-semibold text-base">${fullName}</div>
+                    <div class="text-xs text-gray-500">ADM NO: ${admNo}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">${rollId}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-bold">Class ${classId} ${sectionId ? `(${sectionId})` : ''}</td>
+                <td class="px-6 py-4 whitespace-normal text-sm text-gray-500 min-w-[250px]">
+                    <div class="text-xs text-gray-600 truncate max-w-xs">${address}</div>
+                    <div class="text-xs font-medium text-gray-800">${phone}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                    <div class="flex justify-center space-x-1 sm:space-x-3">
+                        <i data-lucide="eye" 
+                            class="action-icon text-blue-500 w-5 h-5" 
+                            title="বিস্তারিত দেখুন"
+                            onclick="handleAction('view', '${student.id}')">
+                        </i>
+                        <i data-lucide="square-pen" 
+                            class="action-icon text-yellow-500 w-5 h-5" 
+                            title="পরিবর্তন করুন"
+                            onclick="handleAction('edit', '${student.id}')">
+                        </i>
+                        <i data-lucide="trash-2" 
+                            class="action-icon text-red-500 w-5 h-5" 
+                            title="মুছে ফেলুন"
+                            onclick="handleAction('delete', '${student.id}')">
+                        </i>
+                    </div>
+                </td>
+            `;
+            studentTableBody.appendChild(row);
+        });
+        
+        // Re-initialize Lucide icons for the newly added rows
+        lucide.createIcons();
+    }
+
+    // --- NEW: Delete Logic ---
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modal.classList.remove('opacity-100');
+        }
+    }
+
+    /**
+     * ডিলিট নিশ্চিত করার Modal দেখায়।
+     * @param {string} studentId - যে ছাত্রকে ডিলিট করা হবে তার ID।
+     */
+    function showDeleteConfirmation(studentId) {
+        const student = allStudents.find(s => s.id === studentId);
+        if (!student) {
+            showActionModal('ত্রুটি', 'ছাত্রের তথ্য খুঁজে পাওয়া যায়নি।', 'text-red-600');
+            return;
+        }
+
+        // Parent ID is expected to be stored in parentId or parentUserId fields
+        const parentId = student.parentId || student.parentUserId; 
+        const studentName = student.fullName || `ছাত্র ID: ${studentId}`;
+
+        let message = `আপনি কি নিশ্চিত যে আপনি **${studentName}**-কে ডিলিট করতে চান?`;
+        
+        if (parentId) {
+            message += `\n\n⚠️ এই ছাত্রকে ডিলিট করলে এর সাথে যুক্ত **অভিভাবকের ডেটাও** (ID: ${parentId}) ডিলিট হয়ে যাবে।\n\n**এই অ্যাকশনটি অপরিবর্তনীয়!**`;
+        } else {
+            message += `\n\nএই অ্যাকশনটি অপরিবর্তনীয়!`;
+        }
+        
+        const modal = document.getElementById('confirm-modal');
+        const confirmButton = document.getElementById('confirm-button');
+        document.getElementById('confirm-message').innerHTML = message.replace(/\n/g, '<br>');
+
+        // Reset and set new action for the confirm button
+        confirmButton.onclick = function() {
+            closeModal('confirm-modal');
+            deleteStudentAndParent(studentId, parentId);
+        };
+
+        // Show modal
+        setTimeout(() => {
+            modal.classList.add('opacity-100');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            lucide.createIcons();
+        }, 10);
+    }
+    
+    /**
+     * Firebase Firestore থেকে ছাত্র ও সংশ্লিষ্ট অভিভাবককে ডিলিট করে (Batch Write ব্যবহার করে)।
+     * @param {string} studentId - ছাত্রের Document ID.
+     * @param {string} parentId - অভিভাবকের Document ID (যদি থাকে)।
+     */
+    async function deleteStudentAndParent(studentId, parentId) {
+        if (!db) return;
+
+        showActionModal('প্রক্রিয়া চলছে...', 'ডেটা ডিলিট করা হচ্ছে। অপেক্ষা করুন...', 'text-blue-600');
+
+        try {
+            const studentRef = db.collection(getStudentCollectionPath()).doc(studentId);
+            const batch = db.batch(); 
+
+            // 1. Delete Student Document
+            batch.delete(studentRef);
+
+            // 2. Delete Parent Document (if parentId exists)
+            if (parentId) {
+                const parentRef = db.collection(getParentCollectionPath()).doc(parentId);
+                batch.delete(parentRef);
+            }
+
+            // Commit the batch operation
+            await batch.commit();
+
+            // Success feedback
+            showActionModal('সফল! 🎉', `ছাত্র (${studentId})${parentId ? ' এবং সংশ্লিষ্ট অভিভাবকের ডেটা' : ''} সফলভাবে ডিলিট করা হয়েছে।`, 'text-green-600');
+            
+
+        } catch (error) {
+            console.error("Delete Operation Failed:", error);
+            showActionModal('ডিলিট ত্রুটি 🛑', `ডেটা ডিলিট করতে ব্যর্থ: আপনার Firebase সিকিউরিটি রুলস চেক করুন। ত্রুটি: ${error.message}`, 'text-red-600');
+        }
+    }
+
+
+    // --- Action Handlers ---
+    function handleAction(actionType, studentId) {
+        if (actionType === 'view') {
+            window.location.href = `details.html?id=${studentId}`; 
+        } else if (actionType === 'delete') {
+            showDeleteConfirmation(studentId);
+        } else {
+            // Placeholder for Edit action
+            const actionBangla = (actionType === 'edit') ? 'পরিবর্তন করার' : actionType;
+            const color = (actionType === 'edit') ? 'text-yellow-600' : 'text-gray-600';
+
+            showActionModal(`ছাত্র ID: ${studentId}`, 
+                            `আপনি '${actionBangla}' অ্যাকশন শুরু করেছেন। 
+                             এখানে ফর্মে রিডাইরেক্ট বা লজিক আসবে।`, 
+                            color);
+        }
+    }
+    
+    // Custom Modal Function for feedback messages
+    function showActionModal(title, message, color) {
+        const modalId = 'action-modal';
+        let modal = document.getElementById(modalId);
+        if (!modal) return; // Should not happen if HTML is correct
+
+        modal.innerHTML = `
+            <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-11/12 transform scale-100 transition-transform duration-300">
+                <h3 class="text-xl font-bold ${color} border-b pb-2 mb-3">${title}</h3>
+                <p class="text-gray-700 mb-4">${message}</p>
+                <button onclick="closeModal('${modalId}')" 
+                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md">
+                    বন্ধ করুন
+                </button>
+            </div>
+        `;
+        
+        // Show modal
+        setTimeout(() => {
+            modal.classList.add('opacity-100');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+        }, 10);
+    }
+    
+    // Initialize icons when the script loads
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+    });
+
+</script>
+</body>
+</html>
