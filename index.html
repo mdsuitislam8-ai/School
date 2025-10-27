@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>আদর্শ বিদ্যানিকেতন - স্কুল ওয়েবসাইট</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom font setup for a clean, modern look, prioritizing system fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif, 'Noto Sans Bengali', system-ui;
+            /* Scroll behavior for smooth navigation */
+            scroll-behavior: smooth;
+        }
+        /* Custom style for the notices marquee effect */
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 15s linear infinite; /* Adjust duration for speed */
+        }
+        @keyframes marquee {
+            0% { transform: translate3d(100%, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
+        }
+        /* নিশ্চিত করুন যে আপনি ইন্টার ফন্ট ব্যবহার করছেন */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+/* Basic setup for font and padding (আপনি আপনার প্রয়োজনমতো পরিবর্তন করতে পারেন) */
+
+
+/* 1. Dropdown Container Styling */
+.dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+/* 2. Primary Login Button Styling */
+.login-btn {
+    background-color: #0d9488; /* Teal-600 */
+    color: white;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.login-btn:hover {
+    background-color: #0f766e; /* Darker Teal */
+}
+
+/* Icons within the button */
+.login-btn i {
+    margin-right: 8px;
+    width: 20px;
+    height: 20px;
+}
+.login-btn .arrow-icon {
+    margin-left: 8px; 
+    margin-right: 0;
+    transition: transform 0.3s ease; /* Arrow rotation effect */
+}
+
+
+/* 3. Dropdown Menu Content Styling */
+.dropdown-content {
+    display: none; /* Initially hidden */
+    position: absolute;
+    right: 0; 
+    top: 100%; 
+    background-color: #ffffff;
+    min-width: 180px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1000;
+    border-radius: 8px;
+    overflow: hidden; 
+    margin-top: 10px; /* Space from the button */
+    border: 1px solid #e5e7eb;
+}
+
+/* Class added by JS to show the menu */
+.dropdown-content.show {
+    display: block;
+}
+
+/* 4. Dropdown Links Styling */
+.dropdown-content a {
+    color: #1f2937;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    font-size: 15px;
+    font-weight: 500;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.dropdown-content a:hover {
+    background-color: #f3f4f6;
+    color: #0d9488;
+}
+
+/* Icon styling for links */
+.dropdown-content a i {
+    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+}
+
+/* Admin Link Styling */
+.dropdown-content a.admin { 
+    color: #b91c1c; 
+} 
+.dropdown-content a.admin:hover { 
+    color: #dc2626; 
+    background-color: #fef2f2; 
+}
+    </style>
+    
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Firebase Setup (Mandatory Placeholder - Actual functionality not implemented in this simple structure) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+
+        // Global Firebase variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth;
+
+        // Initialize Firebase and Authentication
+        async function initFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length > 0) {
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+                    setLogLevel('Debug');
+                    
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            console.log("Firebase user signed in:", user.uid);
+                            // You would typically fetch user-specific data here
+                        } else {
+                            console.log("Firebase user signed out.");
+                        }
+                    });
+
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                        console.log("Signed in with custom token.");
+                    } else {
+                        await signInAnonymously(auth);
+                        console.log("Signed in anonymously.");
+                    }
+                } else {
+                    console.log("Firebase Config not provided. Running in standalone mode.");
+                }
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+            }
+        }
+        initFirebase();
+    </script>
+    <!-- End Firebase Setup -->
+
+
+    <!-- 1. Header and Navigation -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4 md:justify-start md:space-x-10">
+                <!-- Logo/School Name -->
+                <div class="flex justify-start lg:w-0 lg:flex-1">
+                    <a href="#" class="text-2xl font-extrabold text-blue-600 tracking-wider">
+                        আদর্শ বিদ্যানিকেতন
+                    </a>
+                    
+                </div>
+
+
+
+                <!-- Desktop Navigation Links -->
+                <nav class="hidden md:flex space-x-10">
+                    <a href="#hero" class="text-base font-medium text-gray-500 hover:text-blue-600 transition duration-150 ease-in-out">হোম</a>
+                    <a href="#about" class="text-base font-medium text-gray-500 hover:text-blue-600 transition duration-150 ease-in-out">আমাদের কথা</a>
+                    <a href="#academics" class="text-base font-medium text-gray-500 hover:text-blue-600 transition duration-150 ease-in-out">শিক্ষা কার্যক্রম</a>
+                    <a href="#notices" class="text-base font-medium text-gray-500 hover:text-blue-600 transition duration-150 ease-in-out">নোটিশ বোর্ড</a>
+                    <a href="#gallery" class="text-base font-medium text-gray-500 hover:text-blue-600 transition duration-150 ease-in-out">গ্যালারি</a>
+                    <a href="#contact" class="text-base font-medium text-gray-500 hover:text-blue-600 transition duration-150 ease-in-out">যোগাযোগ</a>
+                    <div style="display: flex; justify-content: flex-end; width: 100%; padding: 20px;">
+    
+    <div class="dropdown-container">
+    
+    <button class="login-btn" onclick="toggleDropdown()">
+        <i data-lucide="log-in"></i> লগইন
+        <i data-lucide="chevron-down" id="dropdown-arrow" class="arrow-icon"></i>
+    </button>
+    
+    <div id="login-dropdown-menu" class="dropdown-content">
+        
+        <a href="admin-login.html" class="admin">
+            <i data-lucide="user-cog"></i>
+            অ্যাডমিন লগইন
+        </a>
+        
+        <a href="teacher-login.html">
+            <i data-lucide="graduation-cap"></i>
+            শিক্ষক
+        </a>
+        
+        <a href="student-login.html">
+            <i data-lucide="users"></i>
+            ছাত্র/ছাত্রী
+        </a>
+    </div>
+</div>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+
+                </nav>
+
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" type="button" class="bg-white rounded-md p-2 inline-flex items-center justify-center text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500" aria-expanded="false">
+                        <span class="sr-only">Open main menu</span>
+                        <i data-lucide="menu" class="h-6 w-6"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu (Hidden by default) -->
+        <div id="mobile-menu" class="hidden md:hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                
+                
+                
+                
+                <a href="#hero" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-blue-600">হোম</a>
+                <a href="#about" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-blue-600">আমাদের কথা</a>
+                <a href="#academics" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-blue-600">শিক্ষা কার্যক্রম</a>
+                <a href="#notices" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-blue-600">নোটিশ বোর্ড</a>
+                <a href="#gallery" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-blue-600">গ্যালারি</a>
+                <a href="#contact" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-white hover:bg-blue-600">যোগাযোগ</a>
+            
+            
+            
+            </div>
+        </div>
+        
+    </header>
+
+    <main>
+        <!-- Top Notice/Marquee Bar -->
+        <div class="bg-yellow-500 text-white p-2 marquee-container">
+            <p class="text-sm font-semibold marquee-content">
+                **জরুরি ঘোষণা:** বার্ষিক ক্রীড়া প্রতিযোগিতা আগামী ১৫ই ফাল্গুন অনুষ্ঠিত হবে। | | **ভর্তি:** নতুন শিক্ষাবর্ষের জন্য ভর্তি প্রক্রিয়া শুরু হয়েছে। | | বিস্তারিত জানতে নোটিশ বোর্ড দেখুন।
+            </p>
+        </div>
+
+        <!-- 2. Hero Section -->
+        <section id="hero" class="relative bg-blue-700 overflow-hidden">
+            <div class="max-w-7xl mx-auto">
+                <div class="relative z-10 pb-8 bg-blue-700 sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
+                    <!-- Background wave (Simple graphic placeholder for modern design) -->
+                    <svg class="hidden lg:block absolute right-0 inset-y-0 h-full w-48 text-blue-700 transform translate-x-1/2" fill="currentColor" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                        <polygon points="50,0 100,0 50,100 0,100" />
+                    </svg>
+
+                    <div class="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
+                        <div class="sm:text-center lg:text-left">
+                            <h1 class="text-4xl tracking-tight font-extrabold text-white sm:text-5xl md:text-6xl">
+                                <span class="block xl:inline">আদর্শ বিদ্যানিকেতনে</span>
+                                <span class="block text-yellow-300 xl:inline">স্বাগতম!</span>
+                            </h1>
+                            <p class="mt-3 text-base text-gray-300 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
+                                **জ্ঞানই শক্তি, দেশ গড়ি**। আমরা মানসম্মত শিক্ষা এবং নৈতিক মূল্যবোধের মাধ্যমে আগামী প্রজন্মকে ভবিষ্যতের জন্য প্রস্তুত করি।
+                            </p>
+                            <div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
+                                <div class="rounded-lg shadow">
+                                    <a href="#" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10 transition duration-300">
+                                        ভর্তি চলছে
+                                    </a>
+                                </div>
+                                <div class="mt-3 sm:mt-0 sm:ml-3">
+                                    <a href="#contact" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-blue-700 bg-indigo-100 hover:bg-indigo-200 md:py-4 md:text-lg md:px-10 transition duration-300">
+                                        যোগাযোগ করুন
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Image section on larger screens -->
+            <div class="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
+                <img class="h-56 w-full object-cover sm:h-72 md:h-96 lg:w-full lg:h-full" src="/image/5.jpg" alt="আদর্শ বিদ্যানিকেতন ক্যাম্পাস">
+            </div>
+        </section>
+
+        <!-- 3. Notices and Quick Links Section -->
+        <section class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 id="notices" class="text-3xl font-extrabold text-center text-gray-900 mb-12">নোটিশ বোর্ড ও জরুরি লিংক</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <!-- Notices/Announcements Panel -->
+                  <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-xl border border-gray-100">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-2xl font-bold text-blue-600">সাম্প্রতিক নোটিশ</h3>
+   <a href="all-notices.html"
+   class="text-blue-600 hover:underline font-medium inline-flex items-center">
+   সব নোটিশ দেখুন
+   <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+</a>
+  </div>
+  <ul id="notice-list" class="space-y-4"></ul>
+</div>
+                    <!-- Quick Links/Features -->
+                    <div class="bg-gray-100 p-6 rounded-xl shadow-inner border border-gray-200">
+                        <h3 class="text-2xl font-bold text-gray-900 mb-6 border-b pb-3">গুরুত্বপূর্ণ লিংক</h3>
+                        <div class="space-y-4">
+                            <a href="#" class="flex items-center p-3 bg-white rounded-lg shadow-md hover:shadow-lg transition duration-300">
+                                <i data-lucide="graduation-cap" class="h-6 w-6 text-green-500 mr-3"></i>
+                                <span class="font-semibold text-gray-700">অনলাইন ফলাফল</span>
+                            </a>
+                            <a href="#" class="flex items-center p-3 bg-white rounded-lg shadow-md hover:shadow-lg transition duration-300">
+                                <i data-lucide="file-text" class="h-6 w-6 text-yellow-500 mr-3"></i>
+                                <span class="font-semibold text-gray-700">ভর্তি ফর্ম ডাউনলোড</span>
+                            </a>
+                            <a href="#" class="flex items-center p-3 bg-white rounded-lg shadow-md hover:shadow-lg transition duration-300">
+                                <i data-lucide="users" class="h-6 w-6 text-red-500 mr-3"></i>
+                                <span class="font-semibold text-gray-700">শিক্ষক পরিচিতি</span>
+                            </a>
+                            <a href="#" class="flex items-center p-3 bg-white rounded-lg shadow-md hover:shadow-lg transition duration-300">
+                                <i data-lucide="book-open" class="h-6 w-6 text-blue-500 mr-3"></i>
+                                <span class="font-semibold text-gray-700">পাঠ্যক্রম ও সিলেবাস</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. About Us Section -->
+        <section id="about" class="py-16 bg-blue-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <p class="text-base text-blue-600 font-semibold tracking-wide uppercase">আমাদের লক্ষ্য ও উদ্দেশ্য</p>
+                    <h2 class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                        আমাদের কথা: আদর্শ বিদ্যানিকেতন
+                    </h2>
+                </div>
+                <div class="grid md:grid-cols-2 gap-10 items-center">
+                    <div class="space-y-6">
+                        <p class="text-lg text-gray-600 leading-relaxed">
+                            ১৯৮০ সালে প্রতিষ্ঠিত **আদর্শ বিদ্যানিকেতন** বিগত ৪০ বছর ধরে এই অঞ্চলের শিক্ষাক্ষেত্রে গুরুত্বপূর্ণ ভূমিকা পালন করে আসছে। আমরা কেবল পুঁথিগত শিক্ষায় নয়, বরং ছাত্র-ছাত্রীদের মানবিক মূল্যবোধ, সৃজনশীলতা এবং নেতৃত্বের গুণাবলী বিকাশেও সমান গুরুত্ব দিই।
+                        </p>
+                        <ul class="space-y-3 text-gray-700">
+                            <li class="flex items-start">
+                                <i data-lucide="check-circle" class="h-5 w-5 text-blue-600 mr-2 mt-1 flex-shrink-0"></i>
+                                <span>অভিজ্ঞ শিক্ষক মণ্ডলী এবং আধুনিক পাঠদান পদ্ধতি।</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i data-lucide="check-circle" class="h-5 w-5 text-blue-600 mr-2 mt-1 flex-shrink-0"></i>
+                                <span>সুসজ্জিত লাইব্রেরি ও বিজ্ঞানাগার।</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i data-lucide="check-circle" class="h-5 w-5 text-blue-600 mr-2 mt-1 flex-shrink-0"></i>
+                                <span>নিয়মিত সহশিক্ষা কার্যক্রম ও ক্রীড়া প্রতিযোগিতা।</span>
+                            </li>
+                        </ul>
+                        <a href="#" class="inline-flex items-center text-blue-600 font-semibold hover:text-blue-800 transition duration-150 ease-in-out mt-4">
+                            আরও জানুন <i data-lucide="chevron-right" class="h-5 w-5 ml-1"></i>
+                        </a>
+                    </div>
+                    <div class="rounded-xl overflow-hidden shadow-2xl">
+                        <img src="/image/5.jpg" alt="শ্রেণিকক্ষে ছাত্রছাত্রীরা">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Academic Programs Section -->
+        <section id="academics" class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-extrabold text-center text-gray-900 mb-12">আমাদের শিক্ষা কার্যক্রম</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Program Card 1 -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300">
+                        <i data-lucide="school" class="h-10 w-10 text-blue-600 mb-4"></i>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">প্রাথমিক শিক্ষা (১ম - ৫ম শ্রেণি)</h3>
+                        <p class="text-gray-600">খেলার ছলে হাতেখড়ি এবং জ্ঞানার্জনের মজবুত ভিত্তি স্থাপন করা হয়। শিশু-বান্ধব পরিবেশে শিক্ষা দান।</p>
+                    </div>
+                    <!-- Program Card 2 -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300">
+                        <i data-lucide="users-round" class="h-10 w-10 text-green-600 mb-4"></i>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">মাধ্যমিক শিক্ষা (৬ষ্ঠ - ৮ম শ্রেণি)</h3>
+                        <p class="text-gray-600">বিভিন্ন বিষয়ে গভীর ধারণা এবং বিজ্ঞান ও গণিতের প্রতি আগ্রহ তৈরি করা হয়।</p>
+                    </div>
+                    <!-- Program Card 3 -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300">
+                        <i data-lucide="book-check" class="h-10 w-10 text-yellow-600 mb-4"></i>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">উচ্চ মাধ্যমিক (৯ম - ১২শ শ্রেণি)</h3>
+                        <p class="text-gray-600">বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা শাখায় অভিজ্ঞ শিক্ষকদের তত্ত্বাবধানে উচ্চশিক্ষা প্রস্তুতি।</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Gallery Preview (Simple Grid) -->
+        <section id="gallery" class="py-16 bg-gray-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-extrabold text-center text-gray-900 mb-12">ক্যাম্পাসের ঝলক</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="rounded-lg overflow-hidden shadow-lg h-48 md:h-64">
+                        <img class="w-full h-full object-cover transform hover:scale-105 transition duration-500 ease-in-out" src="/image/1.jpg" alt="বিজ্ঞান মেলা">
+                    </div>
+                    <div class="rounded-lg overflow-hidden shadow-lg h-48 md:h-64">
+                        <img class="w-full h-full object-cover transform hover:scale-105 transition duration-500 ease-in-out" src="/image/2.jpg" alt="ক্রীড়া দিবস">
+                    </div>
+                    <div class="rounded-lg overflow-hidden shadow-lg h-48 md:h-64">
+                        <img class="w-full h-full object-cover transform hover:scale-105 transition duration-500 ease-in-out" src="/image/3.jpg" alt="স্কুল লাইব্রেরি">
+                    </div>
+                    <div class="rounded-lg overflow-hidden shadow-lg h-48 md:h-64">
+                        <img class="w-full h-full object-cover transform hover:scale-105 transition duration-500 ease-in-out" src="/image/4.jpg" alt="সকাল সমাবেশ">
+                    </div>
+                </div>
+                <div class="text-center mt-8">
+                    <a href="#" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition duration-300">
+                        সম্পূর্ণ গ্যালারি দেখুন
+                    </a>
+                </div>
+            </div>
+        </section>
+        
+    </main>
+
+    <!-- 7. Footer and Contact -->
+    <footer id="contact" class="bg-gray-900 text-white pt-12 pb-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 border-b border-gray-700 pb-8">
+                <!-- School Info -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4 text-blue-400">আদর্শ বিদ্যানিকেতন</h3>
+                    <p class="text-gray-400 mb-4">গুণগত মানসম্পন্ন শিক্ষার মাধ্যমে দেশ গড়ার লক্ষ্যে আমরা প্রতিশ্রুতিবদ্ধ।</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-blue-500 transition duration-150 ease-in-out"><i data-lucide="facebook" class="h-6 w-6"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-blue-500 transition duration-150 ease-in-out"><i data-lucide="youtube" class="h-6 w-6"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-blue-500 transition duration-150 ease-in-out"><i data-lucide="mail" class="h-6 w-6"></i></a>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 text-blue-400">দ্রুত লিংক</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#about" class="text-gray-400 hover:text-white transition duration-150 ease-in-out">আমাদের কথা</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition duration-150 ease-in-out">ভর্তি তথ্য</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition duration-150 ease-in-out">একাডেমিক ক্যালেন্ডার</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition duration-150 ease-in-out">ক্যারিয়ার</a></li>
+                    </ul>
+                </div>
+
+                <!-- Contact Info -->
+             <!-- Contact Info Section -->
+<div class="md:col-span-2">
+    <h3 class="text-lg font-semibold mb-4 text-blue-400">যোগাযোগের ঠিকানা</h3>
+    <div class="space-y-3 text-gray-400">
+        <p class="flex items-start">
+            <i data-lucide="map-pin" class="h-5 w-5 mr-3 mt-1 flex-shrink-0"></i>
+            <span id="contact-address">লোড হচ্ছে...</span>
+        </p>
+        <p class="flex items-center">
+            <i data-lucide="phone" class="h-5 w-5 mr-3"></i>
+            <span id="contact-phone">লোড হচ্ছে...</span>
+        </p>
+        <p class="flex items-center">
+            <i data-lucide="mail" class="h-5 w-5 mr-3"></i>
+            <span id="contact-email">লোড হচ্ছে...</span>
+        </p>
+        <div class="mt-4 rounded-lg overflow-hidden h-48 w-full">
+            <iframe 
+                id="contact-map" 
+                class="w-full h-full border-0 rounded-lg"
+                src="https://placehold.co/600x200/1f2937/9ca3af?text=ম্যাপ+লোড+হচ্ছে..."
+                style="border: 0;"
+                allowfullscreen=""
+                loading="lazy" 
+                referrerpolicy="no-referrer-when-downgrade">
+            </iframe>
+        </div>
+    
+
+            <!-- Copyright -->
+            <div class="mt-8 pt-4 border-t border-gray-800 text-center">
+                <p class="text-sm text-gray-500">&copy; ২০২৫ আদর্শ বিদ্যানিকেতন। সর্বস্বত্ব সংরক্ষিত।</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript for Interactivity -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // 1. Mobile Menu Toggle Logic
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        mobileMenuButton.addEventListener('click', () => {
+            const isExpanded = mobileMenuButton.getAttribute('aria-expanded') === 'true' || false;
+            mobileMenuButton.setAttribute('aria-expanded', !isExpanded);
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Close mobile menu when a link is clicked
+        const mobileLinks = mobileMenu.querySelectorAll('a');
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+                mobileMenuButton.setAttribute('aria-expanded', 'false');
+            });
+        });
+
+        // 2. Simple Smooth Scrolling for all internal links (optional)
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                // Check if it's an internal link
+                if (this.hash.length > 0) {
+                    e.preventDefault();
+                    document.querySelector(this.hash).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+    <!-- Firebase App (Core SDK) -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+    
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+    apiKey: "AIzaSyAjoRYAXQa4J43L4oLmHmUoK7ZqMKCdrxI",
+    authDomain: "programme-7eb45.firebaseapp.com",
+    databaseURL: "https://programme-7eb45-default-rtdb.firebaseio.com",
+    projectId: "programme-7eb45",
+    storageBucket: "programme-7eb45.firebasestorage.app",
+    messagingSenderId: "431090813085",
+    appId: "1:431090813085:web:496fc0d8bb5e57af53ec74",
+    measurementId: "G-FE49VB7F1B"
+};
+    
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    
+    
+    
+    
+    async function loadNotices() {
+        const noticeList = document.getElementById("notice-list");
+        const querySnapshot = await getDocs(collection(db, "notices"));
+        
+        noticeList.innerHTML = ""; // clear list
+        
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const li = document.createElement("li");
+            li.className = "border-b pb-3 flex justify-between items-center";
+            
+            li.innerHTML = `
+  <a href="notice.html?id=${doc.id}" class="text-blue-600 hover:underline">
+    ${data.title}
+  </a>
+  <span class="text-xs text-gray-400 ml-2">${new Date(data.date).toLocaleDateString('bn-BD')}</span>
+`;
+            
+            noticeList.appendChild(li);
+        });
+    }
+    
+    loadNotices();
+</script>
+<!-- External Script File -->
+<script type="module" src="script.js"></script>
+<script type="module" src="script.js"></script>
+<!-- Firebase Contact Loader Script -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+    
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyAjoRYAXQa4J43L4oLmHmUoK7ZqMKCdrxI",
+        authDomain: "programme-7eb45.firebaseapp.com",
+        databaseURL: "https://programme-7eb45-default-rtdb.firebaseio.com",
+        projectId: "programme-7eb45",
+        storageBucket: "programme-7eb45.firebasestorage.app",
+        messagingSenderId: "431090813085",
+        appId: "1:431090813085:web:496fc0d8bb5e57af53ec74",
+        measurementId: "G-FE49VB7F1B"
+    };
+    
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    // Function to load contact information
+    async function loadContactInfo() {
+        try {
+            console.log("Loading contact information from Firebase...");
+            
+            const contactDoc = await getDoc(doc(db, "school", "contact"));
+            
+            if (contactDoc.exists()) {
+                const contactData = contactDoc.data();
+                console.log("Contact data found:", contactData);
+                
+                // Update contact information in the footer
+                if (contactData.address) {
+                    document.getElementById("contact-address").textContent = contactData.address;
+                }
+                
+                if (contactData.phone) {
+                    document.getElementById("contact-phone").textContent = contactData.phone;
+                    // Make phone clickable
+                    document.getElementById("contact-phone").innerHTML =
+                        `<a href="tel:${contactData.phone}" class="hover:text-white transition duration-150">${contactData.phone}</a>`;
+                }
+                
+                if (contactData.email) {
+                    document.getElementById("contact-email").textContent = contactData.email;
+                    // Make email clickable
+                    document.getElementById("contact-email").innerHTML =
+                        `<a href="mailto:${contactData.email}" class="hover:text-white transition duration-150">${contactData.email}</a>`;
+                }
+                
+                // Update Google Map if available
+                if (contactData.mapUrl) {
+                    document.getElementById("contact-map").src = contactData.mapUrl;
+                    document.getElementById("contact-map").alt = "আদর্শ বিদ্যানিকেতন লোকেশন";
+                }
+                
+                console.log("Contact information loaded successfully!");
+                
+            } else {
+                console.log("No contact document found in Firebase!");
+                showDefaultContactInfo();
+            }
+            
+        } catch (error) {
+            console.error("Error loading contact info:", error);
+            showErrorContactInfo();
+        }
+    }
+    
+    // Show default contact info if no data found
+    function showDefaultContactInfo() {
+        document.getElementById("contact-address").textContent = "ঠিকানা তথ্য পাওয়া যায়নি";
+        document.getElementById("contact-phone").textContent = "ফোন নম্বর পাওয়া যায়নি";
+        document.getElementById("contact-email").textContent = "ইমেইল পাওয়া যায়নি";
+    }
+    
+    // Show error message
+    function showErrorContactInfo() {
+        document.getElementById("contact-address").textContent = "তথ্য লোড করতে সমস্যা";
+        document.getElementById("contact-phone").textContent = "তথ্য লোড করতে সমস্যা";
+        document.getElementById("contact-email").textContent = "তথ্য লোড করতে সমস্যা";
+    }
+    
+    // Load contact info when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        loadContactInfo();
+    });
+    
+    // Also try loading when window fully loads (as backup)
+    window.addEventListener('load', function() {
+        // Check if contact info is still loading
+        if (document.getElementById("contact-address").textContent === "লোড হচ্ছে...") {
+            setTimeout(loadContactInfo, 1000);
+        }
+    });
+</script>
+<!-- Firebase Contact Loader Script -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+    
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyAjoRYAXQa4J43L4oLmHmUoK7ZqMKCdrxI",
+        authDomain: "programme-7eb45.firebaseapp.com",
+        databaseURL: "https://programme-7eb45-default-rtdb.firebaseio.com",
+        projectId: "programme-7eb45",
+        storageBucket: "programme-7eb45.firebasestorage.app",
+        messagingSenderId: "431090813085",
+        appId: "1:431090813085:web:496fc0d8bb5e57af53ec74",
+        measurementId: "G-FE49VB7F1B"
+    };
+    
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    // Function to load contact information
+    async function loadContactInfo() {
+        try {
+            console.log("Loading contact information from Firebase...");
+            
+            const contactDoc = await getDoc(doc(db, "school", "contact"));
+            
+            if (contactDoc.exists()) {
+                const contactData = contactDoc.data();
+                console.log("Contact data found:", contactData);
+                
+                // Update contact information in the footer
+                if (contactData.address) {
+                    document.getElementById("contact-address").textContent = contactData.address;
+                }
+                
+                if (contactData.phone) {
+                    document.getElementById("contact-phone").innerHTML =
+                        `<a href="tel:${contactData.phone}" class="hover:text-white transition duration-150">${contactData.phone}</a>`;
+                }
+                
+                if (contactData.email) {
+                    document.getElementById("contact-email").innerHTML =
+                        `<a href="mailto:${contactData.email}" class="hover:text-white transition duration-150">${contactData.email}</a>`;
+                }
+                
+                // Update Google Map if available
+                if (contactData.mapUrl) {
+                    const mapImg = document.getElementById("contact-map");
+                    mapImg.src = contactData.mapUrl;
+                    mapImg.alt = "আদর্শ বিদ্যানিকেতন লোকেশন";
+                    mapImg.onerror = function() {
+                        console.error("Map image failed to load:", contactData.mapUrl);
+                        this.src = "https://placehold.co/600x200/1f2937/9ca3af?text=ম্যাপ+লোড+হচ্ছে+না";
+                    };
+                } else {
+                    document.getElementById("contact-map").src =
+                        "https://placehold.co/600x200/1f2937/9ca3af?text=ম্যাপ+যোগ+করুন";
+                }
+                
+                console.log("Contact information loaded successfully!");
+                
+            } else {
+                console.log("No contact document found in Firebase!");
+                showDefaultContactInfo();
+            }
+            
+        } catch (error) {
+            console.error("Error loading contact info:", error);
+            showErrorContactInfo();
+        }
+    }
+    
+    // Function to load notices
+    async function loadNotices() {
+        try {
+            const noticeList = document.getElementById("notice-list");
+            const querySnapshot = await getDocs(collection(db, "notices"));
+            
+            noticeList.innerHTML = ""; // clear list
+            
+            if (querySnapshot.empty) {
+                noticeList.innerHTML = '<li class="text-gray-500 text-center py-4">কোন নোটিশ পাওয়া যায়নি</li>';
+                return;
+            }
+            
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const li = document.createElement("li");
+                li.className = "border-b pb-3 flex justify-between items-center";
+                
+                li.innerHTML = `
+                    <a href="notice.html?id=${doc.id}" class="text-blue-600 hover:underline">
+                        ${data.title || 'শিরোনাম নেই'}
+                    </a>
+                    <span class="text-xs text-gray-400 ml-2">
+                        ${data.date ? new Date(data.date).toLocaleDateString('bn-BD') : 'তারিখ নেই'}
+                    </span>
+                `;
+                
+                noticeList.appendChild(li);
+            });
+            
+        } catch (error) {
+            console.error("Error loading notices:", error);
+            document.getElementById("notice-list").innerHTML =
+                '<li class="text-red-500 text-center py-4">নোটিশ লোড করতে সমস্যা</li>';
+        }
+    }
+    
+    // Show default contact info if no data found
+    function showDefaultContactInfo() {
+        document.getElementById("contact-address").textContent = "ঠিকানা তথ্য পাওয়া যায়নি";
+        document.getElementById("contact-phone").innerHTML = "ফোন নম্বর পাওয়া যায়নি";
+        document.getElementById("contact-email").innerHTML = "ইমেইল পাওয়া যায়নি";
+        document.getElementById("contact-map").src =
+            "https://placehold.co/600x200/1f2937/9ca3af?text=তথ্য+যোগ+করুন";
+    }
+    
+    // Show error message
+    function showErrorContactInfo() {
+        document.getElementById("contact-address").textContent = "তথ্য লোড করতে সমস্যা";
+        document.getElementById("contact-phone").innerHTML = "তথ্য লোড করতে সমস্যা";
+        document.getElementById("contact-email").innerHTML = "তথ্য লোড করতে সমস্যা";
+        document.getElementById("contact-map").src =
+            "https://placehold.co/600x200/ef4444/9ca3af?text=লোড+সমস্যা";
+    }
+    
+    // Load data when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        loadContactInfo();
+        loadNotices();
+    });
+</script>
+
+<script>
+    // এই কোডটি script.js নামে সেভ করুন
+
+// ১. আইকন ইনিশিয়ালাইজ করুন
+document.addEventListener('DOMContentLoaded', () => {
+    // Lucide Icon লাইব্রেরি ব্যবহার করে HTML-এ থাকা আইকনগুলো SVG-তে তৈরি করে
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+});
+
+/**
+ * ড্রপডাউন মেনুর প্রদর্শন অবস্থা পরিবর্তন করে এবং তীর আইকন ঘোরানোর কাজ করে।
+ */
+function toggleDropdown() {
+    const dropdown = document.getElementById("login-dropdown-menu");
+    const arrow = document.getElementById("dropdown-arrow");
+    
+    // 'show' ক্লাস যোগ/বাদ দিয়ে মেনু দেখানো/লুকানো হয়
+    dropdown.classList.toggle("show");
+    
+    // তীর আইকন ঘোরানো হয়
+    if (dropdown.classList.contains("show")) {
+        arrow.style.transform = 'rotate(180deg)';
+    } else {
+        arrow.style.transform = 'rotate(0deg)';
+    }
+}
+
+/**
+ * বাটন বা মেনুর বাইরে ক্লিক করা হলে ড্রপডাউনটি বন্ধ করে দেয়।
+ */
+window.onclick = function(event) {
+    // নিশ্চিত করে যে ক্লিকটি লগইন বাটন (.login-btn) বা তার ভিতরে হয়নি
+    if (!event.target.closest('.login-btn')) {
+        const dropdown = document.getElementById("login-dropdown-menu");
+        const arrow = document.getElementById("dropdown-arrow");
+        
+        // যদি ড্রপডাউন খোলা থাকে, তবে এটি বন্ধ করে দেয়
+        if (dropdown && dropdown.classList.contains('show')) {
+            dropdown.classList.remove('show');
+            if (arrow) {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+}
+</script>
+
+</body>
+</html>
