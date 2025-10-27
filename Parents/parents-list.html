@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>অভিভাবক তথ্য - তালিকা ড্যাশবোর্ড (পাবলিক)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+    
+    <style>
+        /* (The CSS styles remain the same as the previous version for responsiveness) */
+        body { font-family: 'Roboto', sans-serif; background-color: #f4f6f9; }
+        .name-cell { min-width: 200px; }
+        .contact-cell { min-width: 250px; }
+        .action-icon { cursor: pointer; padding: 5px; border-radius: 4px; transition: background-color 0.2s; }
+        .action-icon:hover { opacity: 0.8; background-color: #fff0f0; }
+        @media (max-width: 640px) {
+            .data-table-wrapper { min-width: 800px; }
+            .px-6 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+            .py-4 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+        }
+    </style>
+</head>
+<body class="p-2 sm:p-4 md:p-8">
+
+<div class="max-w-full lg:max-w-7xl mx-auto bg-white rounded-xl shadow-2xl p-4 sm:p-6 md:p-8">
+    <header class="mb-6 pb-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-800 flex items-center mb-2 sm:mb-0">
+            <i data-lucide="shield-check" class="w-6 h-6 mr-3 text-red-600"></i>
+            অভিভাবক তথ্য - তালিকা ড্যাশবোর্ড
+        </h1>
+        <span class="text-xs sm:text-sm text-gray-500">মোট অভিভাবক: <span id="parent-count">...</span></span>
+    </header>
+
+    <div class="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-end">
+        <div class="w-full md:w-64 flex-grow">
+            <label for="search-input" class="text-sm font-medium text-gray-700 block mb-1">খোঁজ করুন (নাম/ফোন):</label>
+            <input type="text" id="search-input" onkeyup="filterParents()" placeholder="নাম, ফোন নম্বর, বা ইউজার আইডি" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm transition duration-150 ease-in-out">
+        </div>
+        
+        <div class="flex space-x-2 w-full md:w-auto">
+            <button class="flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg shadow-md hover:bg-green-600 transition duration-150" onclick="alert('Excel Export feature requested!')">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-1"></i> Excel Export
+            </button>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
+        <div class="data-table-wrapper">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">S/N</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider name-cell">অভিভাবকের নাম</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">ইউজার আইডি</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">যোগাযোগের নম্বর</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider contact-cell">ছাত্র/ছাত্রী (সংখ্যা)</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">অ্যাকশন</th>
+                    </tr>
+                </thead>
+                <tbody id="parent-table-body" class="bg-white divide-y divide-gray-200">
+                    </tbody>
+            </table>
+        </div>
+
+        <div id="loading-message" class="p-8 text-center text-gray-500">অভিভাবকের ডেটা লোড হচ্ছে...</div>
+        <div id="no-data-message" class="p-8 text-center text-red-500 font-medium hidden">
+            কোনো অভিভাবকের ডেটা পাওয়া যায়নি।
+        </div>
+        <div id="error-message" class="p-8 text-center text-red-700 font-medium hidden">
+            ডেটা লোড করতে সমস্যা হয়েছে।
+        </div>
+    </div>
+</div>
+
+<div id="confirm-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300 opacity-0 pointer-events-none">
+    <div id="confirm-modal-content" class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-11/12 transform scale-100 transition-transform duration-300">
+        <h3 class="text-xl font-bold text-red-600 border-b pb-2 mb-3 flex items-center">
+            <i data-lucide="alert-triangle" class="w-5 h-5 mr-2"></i> নিশ্চিত করুন
+        </h3>
+        <p id="confirm-message" class="text-gray-700 mb-6"></p>
+        <div class="flex justify-end space-x-3">
+            <button onclick="closeModal('confirm-modal')" 
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">
+                বাতিল
+            </button>
+            <button id="confirm-button" 
+                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition duration-150 shadow-md">
+                ডিলিট করুন
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="action-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300 opacity-0 pointer-events-none">
+    </div>
+
+<script>
+    // --- Firebase Configuration ---
+    // IMPORTANT: REPLACE with your actual Firebase configuration details.
+    const explicitFirebaseConfig = {
+      apiKey: "AIzaSyAjoRYAXQa4J43L4oLmHmUoK7ZqMKCdrxI",
+      authDomain: "programme-7eb45.firebaseapp.com",
+      databaseURL: "https://programme-7eb45-default-rtdb.firebaseio.com",
+      projectId: "programme-7eb45",
+      storageBucket: "programme-7eb45.firebasestorage.app",
+      messagingSenderId: "431090813085",
+      appId: "1:431090813085:web:496fc0d8bb5e57af53ec74",
+      measurementId: "G-FE49VB7F1B"
+    };
+
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : explicitFirebaseConfig; 
+    const appId = firebaseConfig.projectId; // Using projectId as a fallback for appId
+    
+    let db;
+    let allParents = [];
+
+    const parentTableBody = document.getElementById('parent-table-body');
+    const searchInput = document.getElementById('search-input');
+    const loadingMessage = document.getElementById('loading-message');
+    const noDataMessage = document.getElementById('no-data-message');
+    const errorMessage = document.getElementById('error-message');
+    const parentCountElement = document.getElementById('parent-count');
+
+    // Firestore Collection Paths
+    const getParentCollectionPath = () => `/artifacts/${appId}/public/data/parents`;
+    const getStudentCollectionPath = () => `/artifacts/${appId}/public/data/students`; 
+
+
+    // --- Firebase Initialization & Listener Setup (WITHOUT AUTH) ---
+    try {
+        const app = firebase.initializeApp(firebaseConfig);
+        db = app.firestore();
+        
+        // Directly start the listener without any authentication step
+        startDataListener();
+        
+    } catch (error) {
+        console.error("Firebase Initialization Failed:", error);
+        handleError(`প্রাথমিকীকরণ ত্রুটি: ${error.message}`);
+    }
+
+    // The rest of the functions (startDataListener, filterParents, renderTable, 
+    // showDeleteConfirmation, deleteParentAndUnlinkStudents, handleAction, modals) 
+    // are the SAME as the previous, non-anonymous-sign-in version.
+    // I will include the main data function here for completeness.
+
+    function startDataListener() {
+        if (!db) return;
+
+        const parentsRef = db.collection(getParentCollectionPath());
+        
+        parentsRef.onSnapshot(snapshot => {
+            loadingMessage.classList.add('hidden');
+            allParents = [];
+            
+            if (snapshot.empty) {
+                noDataMessage.textContent = "কোনো অভিভাবকের ডেটা পাওয়া যায়নি।";
+                noDataMessage.classList.remove('hidden');
+                parentCountElement.textContent = '0';
+                renderTable(); 
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                data.id = doc.id; 
+                data.studentCount = data.students ? data.students.length : 0; 
+                allParents.push(data);
+            });
+            
+            parentCountElement.textContent = allParents.length;
+            filterParents(); 
+
+        }, err => {
+            console.error("Firestore Listener Error:", err);
+            handleError(`ডেটাবেস থেকে তথ্য আনতে ব্যর্থ: ${err.message}`);
+        });
+    }
+    
+    // --- Data Filtering & Rendering (Same as previous version) ---
+    function filterParents() {
+        const searchText = searchInput.value.toLowerCase().trim();
+        let filteredParents = allParents;
+
+        if (searchText) {
+            filteredParents = filteredParents.filter(parent => {
+                const name = (parent.fullName || parent.fatherName || parent.motherName || '').toLowerCase();
+                const phone = (parent.phone || '').toString().toLowerCase();
+                const userId = (parent.userId || parent.id || '').toLowerCase();
+                
+                return name.includes(searchText) || phone.includes(searchText) || userId.includes(searchText);
+            });
+        }
+        
+        renderTable(filteredParents);
+    }
+
+    function renderTable(parents = []) {
+        parentTableBody.innerHTML = '';
+        
+        if (parents.length === 0) {
+            noDataMessage.textContent = "আপনার নির্বাচনের ভিত্তিতে কোনো অভিভাবকের ডেটা পাওয়া যায়নি।";
+            noDataMessage.classList.remove('hidden');
+            return;
+        }
+
+        noDataMessage.classList.add('hidden');
+
+        parents.forEach((parent, index) => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50 transition duration-150';
+            
+            const fullName = parent.fullName || parent.fatherName || 'নাম নেই';
+            const userId = parent.userId || parent.id || 'N/A';
+            const phone = parent.phone || 'N/A';
+            const studentCount = parent.studentCount;
+
+            row.innerHTML = `
+                <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${index + 1}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 name-cell">
+                    <div class="font-semibold text-base">${fullName}</div>
+                    <div class="text-xs text-gray-500">${parent.relation || 'অভিভাবক'}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">${userId}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-bold">${phone}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
+                    ${studentCount} জন ছাত্র/ছাত্রী
+                    ${studentCount > 0 ? `<i data-lucide="info" class="w-4 h-4 ml-1 text-blue-500 inline-block align-middle cursor-pointer" title="ছাত্রদের তালিকা দেখুন" onclick="showActionModal('ছাত্র তালিকা', 'ছাত্রদের নাম এখানে লোড হবে', 'text-blue-600')"></i>` : ''}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                    <div class="flex justify-center space-x-3">
+                        <i data-lucide="eye" 
+                            class="action-icon text-blue-500 w-5 h-5" 
+                            title="বিস্তারিত দেখুন"
+                            onclick="handleAction('view', '${parent.id}')">
+                        </i>
+                        <i data-lucide="trash-2" 
+                            class="action-icon text-red-500 w-5 h-5" 
+                            title="মুছে ফেলুন"
+                            onclick="handleAction('delete', '${parent.id}', ${studentCount})">
+                        </i>
+                    </div>
+                </td>
+            `;
+            parentTableBody.appendChild(row);
+        });
+        
+        lucide.createIcons();
+    }
+    
+    // --- Modals and Actions (Same as previous version, included for functionality) ---
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modal.classList.remove('opacity-100');
+        }
+    }
+
+    function showActionModal(title, message, color) {
+        const modalId = 'action-modal';
+        let modal = document.getElementById(modalId);
+
+        modal.innerHTML = `
+            <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-11/12 transform scale-100 transition-transform duration-300">
+                <h3 class="text-xl font-bold ${color} border-b pb-2 mb-3">${title}</h3>
+                <p class="text-gray-700 mb-4">${message}</p>
+                <button onclick="closeModal('${modalId}')" 
+                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md">
+                    বন্ধ করুন
+                </button>
+            </div>
+        `;
+        
+        setTimeout(() => {
+            modal.classList.add('opacity-100');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+        }, 10);
+    }
+    
+    function handleError(message) {
+        loadingMessage.classList.add('hidden');
+        errorMessage.textContent = message;
+        errorMessage.classList.remove('hidden');
+    }
+    
+    function showDeleteConfirmation(parentId, studentCount) {
+        const parent = allParents.find(p => p.id === parentId);
+        if (!parent) return showActionModal('ত্রুটি', 'অভিভাবকের তথ্য খুঁজে পাওয়া যায়নি।', 'text-red-600');
+
+        const parentName = parent.fullName || parent.fatherName || `অভিভাবক ID: ${parentId}`;
+
+        let message = `আপনি কি নিশ্চিত যে আপনি **${parentName}**-কে ডিলিট করতে চান?`;
+        
+        if (studentCount > 0) {
+            message += `\n\n⚠️ **সতর্কতা:** এই অভিভাবককে ডিলিট করলে ${studentCount} জন ছাত্রের সাথে এর সংযোগ ছিন্ন হয়ে যাবে, কিন্তু ছাত্রের তথ্য ডিলিট হবে না। ডিলিটের আগে ছাত্রদের ডেটা পরীক্ষা করে নিন।`;
+        }
+        message += `\n\n**এই অ্যাকশনটি অপরিবর্তনীয়!**`;
+        
+        const modal = document.getElementById('confirm-modal');
+        const confirmButton = document.getElementById('confirm-button');
+        document.getElementById('confirm-message').innerHTML = message.replace(/\n/g, '<br>');
+
+        confirmButton.onclick = function() {
+            closeModal('confirm-modal');
+            deleteParentAndUnlinkStudents(parentId);
+        };
+
+        setTimeout(() => {
+            modal.classList.add('opacity-100');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            lucide.createIcons();
+        }, 10);
+    }
+    
+    async function deleteParentAndUnlinkStudents(parentId) {
+        if (!db) return;
+
+        showActionModal('প্রক্রিয়া চলছে...', 'অভিভাবকের ডেটা ডিলিট করা হচ্ছে। অপেক্ষা করুন...', 'text-blue-600');
+
+        try {
+            const batch = db.batch(); 
+            const parentRef = db.collection(getParentCollectionPath()).doc(parentId);
+
+            const parentData = allParents.find(p => p.id === parentId);
+            const studentsToUnlink = parentData ? parentData.students || [] : [];
+            
+            studentsToUnlink.forEach(studentId => {
+                const studentRef = db.collection(getStudentCollectionPath()).doc(studentId);
+                batch.update(studentRef, { parentId: firebase.firestore.FieldValue.delete() });
+            });
+
+            batch.delete(parentRef);
+            await batch.commit();
+
+            showActionModal('সফল! 🎉', `অভিভাবকের ডেটা সফলভাবে ডিলিট করা হয়েছে এবং ${studentsToUnlink.length} জন ছাত্রের সাথে সংযোগ ছিন্ন হয়েছে।`, 'text-green-600');
+            
+
+        } catch (error) {
+            console.error("Delete Operation Failed:", error);
+            showActionModal('ডিলিট ত্রুটি 🛑', `ডেটা ডিলিট করতে ব্যর্থ: সিকিউরিটি রুলস চেক করুন। ত্রুটি: ${error.message}`, 'text-red-600');
+        }
+    }
+
+
+    function handleAction(actionType, parentId, studentCount) {
+        if (actionType === 'view') {
+            window.location.href = `parent-details.html?id=${parentId}`; 
+        } else if (actionType === 'delete') {
+            showDeleteConfirmation(parentId, studentCount);
+        } else {
+            showActionModal(`অভিভাবক ID: ${parentId}`, 
+                            `'${actionType}' অ্যাকশন শুরু করা হয়েছে।`, 
+                            'text-gray-600');
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+    });
+
+</script>
+</body>
+</html>
