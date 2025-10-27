@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ছাত্রের বিস্তারিত তথ্য (Details)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs (v8) -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    
+    <style>
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            background-color: #f4f6f9; 
+            color: #333; 
+        }
+        .container { 
+            max-width: 900px; 
+            margin: 0 auto; 
+            padding: 1.5rem; /* Base padding */
+        }
+        .student-card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .header-section {
+            display: flex;
+            align-items: center;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+        }
+        .profile-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 25px;
+            border: 4px solid #007bff;
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
+            flex-shrink: 0;
+        }
+        .student-name {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #333;
+            line-height: 1.2;
+        }
+        .student-roll {
+            font-size: 1.1rem;
+            color: #555;
+            font-weight: 500;
+        }
+        .detail-section-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #007bff;
+            margin: 25px 0 15px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #cce0ff;
+        }
+        
+        /* RESPONSIVE DETAIL ROW STYLES */
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; /* Align to top for multi-line content */
+            padding: 10px 0;
+            border-bottom: 1px dashed #f0f0f0;
+            font-size: 1rem;
+        }
+        .detail-label {
+            font-weight: 500;
+            color: #555;
+            flex-shrink: 0; 
+            padding-right: 15px; /* Space between label and value */
+            line-height: 1.5;
+        }
+        .detail-value {
+            color: #333;
+            text-align: right;
+            max-width: 65%; /* Give enough space for the label */
+            word-break: break-all; /* CRITICAL: Ensures long strings/URLs wrap */
+            flex-grow: 1; 
+            line-height: 1.5;
+        }
+        .detail-value.highlight {
+            font-weight: 700;
+            color: #007bff;
+        }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); display: none; justify-content: center;
+            align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 450px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.4); position: relative; animation: fadeIn 0.3s;
+        }
+        .modal-close { position: absolute; top: 10px; right: 15px; font-size: 2rem; cursor: pointer; color: #aaa; }
+        .parent-detail-row { padding: 8px 0; border-bottom: 1px dashed #f0f0f0; }
+        
+        /* Mobile adjustment (Below 640px) */
+        @media (max-width: 640px) {
+            .container { padding: 10px; }
+            
+            /* Header Stacking */
+            .header-section { 
+                flex-direction: column; 
+                align-items: center; /* Center header elements */
+                text-align: center;
+            }
+            .profile-img { 
+                margin-right: 0; 
+                margin-bottom: 15px; 
+            }
+            .student-name { 
+                font-size: 1.5rem; 
+            }
+            .student-roll { 
+                font-size: 1rem; 
+            }
+            
+            /* Detail Row Stacking (Label above Value) */
+            .detail-row {
+                flex-direction: column; /* Stacks label and value vertically */
+                align-items: flex-start;
+            }
+            .detail-label {
+                padding-right: 0; /* No need for right padding when stacked */
+                margin-bottom: 2px;
+                font-size: 0.9rem;
+                color: #007bff; /* Highlight label for clarity */
+            }
+            .detail-value {
+                text-align: left;
+                max-width: 100%; /* Take full width */
+                font-weight: 500;
+            }
+            
+            .student-card { padding: 15px; } /* Smaller padding for the card */
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="main-content">
+    <div id="loading-message" class="text-center p-10 text-xl font-medium text-gray-500">
+        ছাত্রের তথ্য লোড হচ্ছে...
+    </div>
+    <div id="student-details-card" class="student-card hidden">
+        <!-- Student Details will be injected here -->
+    </div>
+    <div id="error-message" class="hidden text-center p-10 text-xl font-medium text-red-600">
+        ত্রুটি: কোনো ছাত্রের ID পাওয়া যায়নি অথবা ডেটাবেসে তথ্য নেই।
+    </div>
+</div>
+
+<!-- Parent Details Modal -->
+<div id="parent-modal-overlay" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close" onclick="document.getElementById('parent-modal-overlay').style.display = 'none';">&times;</button>
+        <h2 class="text-2xl font-bold text-blue-600 border-b pb-2 mb-4">অভিভাবকের তথ্য</h2>
+        <div id="modal-parent-details">
+            <!-- Parent data will be injected here -->
+            <div class="parent-detail-row"><span class="detail-label">পিতার নাম:</span> <span class="detail-value" id="modal-father-name"></span></div>
+            <div class="parent-detail-row"><span class="detail-label">মাতার নাম:</span> <span class="detail-value" id="modal-mother-name"></span></div>
+            <div class="parent-detail-row"><span class="detail-label">ফোন:</span> <span class="detail-value" id="modal-phone"></span></div>
+            <div class="parent-detail-row"><span class="detail-label">ইমেইল:</span> <span class="detail-value" id="modal-email"></span></div>
+            <div class="parent-detail-row"><span class="detail-label">ID:</span> <span class="detail-value" id="modal-parent-id"></span></div>
+        </div>
+        <div id="modal-error-message" class="text-red-500 text-center mt-3 hidden">অভিভাবকের তথ্য লোড করা যায়নি।</div>
+    </div>
+</div>
+
+<script>
+    // --- Firebase Configuration (Provided by User) ---
+    const explicitFirebaseConfig = {
+      apiKey: "AIzaSyAjoRYAXQa4J43L4oLmHmUoK7ZqMKCdrxI",
+      authDomain: "programme-7eb45.firebaseapp.com",
+      databaseURL: "https://programme-7eb45-default-rtdb.firebaseio.com",
+      projectId: "programme-7eb45",
+      storageBucket: "programme-7eb45.firebasestorage.app",
+      messagingSenderId: "431090813085",
+      appId: "1:431090813085:web:496fc0d8bb5e57af53ec74",
+      measurementId: "G-FE49VB7F1B"
+    };
+
+    // Use environment variables if available, otherwise use explicit config
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : explicitFirebaseConfig; 
+    const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
+    
+    let db, auth;
+    let currentStudentId = null;
+
+    const detailsCard = document.getElementById('student-details-card');
+    const loadingMessage = document.getElementById('loading-message');
+    const errorMessage = document.getElementById('error-message');
+
+    // Firestore Collection Path
+    const getStudentCollectionPath = () => `/artifacts/${appId}/public/data/students`;
+    const getParentCollectionPath = () => `/artifacts/${appId}/public/data/parents`;
+    
+    // Function to get student ID from URL (Query Parameter)
+    function getStudentIdFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+        console.log(`Retrieved Student ID from URL: ${id}`);
+        return id;
+    }
+
+    // --- Firebase Initialization ---
+    try {
+        const app = firebase.initializeApp(firebaseConfig);
+        db = app.firestore();
+        auth = app.auth();
+        firebase.firestore.setLogLevel('debug');
+        
+        // Check URL for ID
+        currentStudentId = getStudentIdFromUrl();
+        if (!currentStudentId) {
+            loadingMessage.classList.add('hidden');
+            errorMessage.textContent = 'ত্রুটি: URL-এ কোনো ছাত্র ID (Query Parameter) পাওয়া যায়নি।';
+            errorMessage.classList.remove('hidden');
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (!user) {
+                // Handle authentication
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    auth.signInWithCustomToken(__initial_auth_token).catch(() => auth.signInAnonymously());
+                } else {
+                    auth.signInAnonymously();
+                }
+            }
+            // Start data fetch only after auth is ready and ID is present
+            if (currentStudentId) {
+                fetchStudentDetails(currentStudentId);
+            }
+        });
+        
+    } catch (error) {
+        console.error("Firebase Initialization Failed:", error);
+        loadingMessage.classList.add('hidden');
+        errorMessage.textContent = `প্রাথমিকীকরণ ত্রুটি: ${error.message}`;
+        errorMessage.classList.remove('hidden');
+    }
+
+    // --- Data Fetching Logic for Single Student ---
+    // Uses doc().get() to fetch only the specified document once.
+    async function fetchStudentDetails(studentId) {
+        if (!db || !studentId) {
+            loadingMessage.classList.add('hidden');
+            errorMessage.classList.remove('hidden');
+            return;
+        }
+
+        loadingMessage.classList.remove('hidden');
+        detailsCard.classList.add('hidden');
+        errorMessage.classList.add('hidden');
+
+        try {
+            const studentDocRef = db.collection(getStudentCollectionPath()).doc(studentId);
+            const doc = await studentDocRef.get(); // Single document fetch
+
+            loadingMessage.classList.add('hidden');
+
+            if (doc.exists) {
+                const data = doc.data();
+                renderStudentCard(data, doc.id);
+                detailsCard.classList.remove('hidden');
+            } else {
+                errorMessage.textContent = `ত্রুটি: Student ID "${studentId}" এর জন্য কোনো তথ্য পাওয়া যায়নি।`;
+                errorMessage.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error("Error fetching student details:", error);
+            loadingMessage.classList.add('hidden');
+            errorMessage.textContent = `ডেটা লোড করতে সমস্যা হয়েছে: ${error.message}`;
+            errorMessage.classList.remove('hidden');
+        }
+    }
+
+    // --- UI Rendering ---
+    function renderStudentCard(data, studentId) {
+        // Fallback values
+        const fullName = data.fullName || 'নাম নেই';
+        const classId = data.classId || 'N/A';
+        const sectionId = data.sectionId || 'N/A';
+        const rollId = data.rollId || 'N/A';
+        const phone = data.phone || 'N/A';
+        const email = data.email || 'N/A';
+        const gender = data.gender || 'N/A';
+        const dob = data.dob || 'N/A';
+        const address = data.address || 'N/A';
+        const parentId = data.parentId || null;
+        const photoUrl = data.photoUrl || 'https://placehold.co/100x100/3b82f6/ffffff?text=P.P';
+
+        detailsCard.innerHTML = `
+            <div class="header-section">
+                <img class="profile-img" 
+                     src="${photoUrl}" 
+                     alt="${fullName}'s Photo"
+                     onerror="this.onerror=null; this.src='https://placehold.co/100x100/3b82f6/ffffff?text=P.P';"
+                >
+                <div>
+                    <div class="student-name">${fullName}</div>
+                    <div class="student-roll text-blue-600">Roll: ${rollId} | Class: ${classId} (${sectionId})</div>
+                    <div class="text-sm text-gray-500 mt-1">Firestore ID: ${studentId}</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-10">
+                <!-- Admission Details -->
+                <div>
+                    <div class="detail-section-title">ভর্তির তথ্য (Admission)</div>
+                    <div class="detail-row"><span class="detail-label">ভর্তির বছর:</span> <span class="detail-value">${data.admittedYear || 'N/A'}</span></div>
+                    <div class="detail-row"><span class="detail-label">ভর্তি নং (ADM NO):</span> <span class="detail-value">${data.admissionNo || 'N/A'}</span></div>
+                    <div class="detail-row"><span class="detail-label">সেকশন:</span> <span class="detail-value">${sectionId}</span></div>
+                    <div class="detail-row"><span class="detail-label">ক্লাস:</span> <span class="detail-value highlight">Class ${classId}</span></div>
+                </div>
+                
+                <!-- Personal Details -->
+                <div>
+                    <div class="detail-section-title">ব্যক্তিগত তথ্য (Personal)</div>
+                    <div class="detail-row"><span class="detail-label">লিঙ্গ:</span> <span class="detail-value">${gender.charAt(0).toUpperCase() + gender.slice(1)}</span></div>
+                    <div class="detail-row"><span class="detail-label">জন্ম তারিখ (DOB):</span> <span class="detail-value">${dob}</span></div>
+                    <div class="detail-row"><span class="detail-label">রক্তের গ্রুপ:</span> <span class="detail-value">${data.bloodGroup || 'N/A'}</span></div>
+                    <div class="detail-row"><span class="detail-label">জাতীয়তা:</span> <span class="detail-value">${data.nationality || 'N/A'}</span></div>
+                </div>
+            </div>
+
+            <!-- Contact & Address -->
+            <div class="detail-section-title">ঠিকানা ও যোগাযোগ</div>
+            <div class="detail-row"><span class="detail-label">ঠিকানা:</span> <span class="detail-value">${address}</span></div>
+            <div class="detail-row"><span class="detail-label">জেলা, রাজ্য:</span> <span class="detail-value">${data.district || 'N/A'}, ${data.state || 'N/A'}</span></div>
+            <div class="detail-row"><span class="detail-label">ফোন:</span> <span class="detail-value">${phone}</span></div>
+            <div class="detail-row"><span class="detail-label">ইমেইল:</span> <span class="detail-value">${email}</span></div>
+            
+            <!-- Parent Link -->
+            <div class="mt-8 pt-4 border-t border-gray-100 flex justify-between items-center flex-wrap gap-3">
+                <span class="text-lg font-semibold text-gray-700">অভিভাবক ID: ${parentId || 'সংযুক্ত নেই'}</span>
+                ${parentId ? 
+                    `<button onclick="showParentDetails('${parentId}')" 
+                             class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md flex-shrink-0">
+                        অভিভাবকের তথ্য দেখুন
+                    </button>` : 
+                    `<button disabled class="bg-gray-300 text-gray-600 font-bold py-2 px-4 rounded-lg cursor-not-allowed flex-shrink-0">
+                        অভিভাবক নেই
+                    </button>`
+                }
+            </div>
+        `;
+    }
+
+    // --- Parent Details Modal Logic ---
+    async function showParentDetails(parentId) {
+        if (!parentId) return;
+
+        const modalOverlay = document.getElementById('parent-modal-overlay');
+        const errorMsg = document.getElementById('modal-error-message');
+        const detailsContent = document.getElementById('modal-parent-details');
+
+        errorMsg.classList.add('hidden');
+        detailsContent.style.opacity = '0.5';
+        modalOverlay.style.display = 'flex';
+        document.getElementById('modal-father-name').textContent = 'লোড হচ্ছে...';
+        document.getElementById('modal-phone').textContent = 'লোড হচ্ছে...';
+
+        try {
+            const parentDocRef = db.collection(getParentCollectionPath()).doc(parentId);
+            const doc = await parentDocRef.get();
+
+            detailsContent.style.opacity = '1';
+
+            if (doc.exists) {
+                const data = doc.data();
+                document.getElementById('modal-father-name').textContent = data.fatherName || 'N/A';
+                document.getElementById('modal-mother-name').textContent = data.motherName || 'N/A';
+                document.getElementById('modal-phone').textContent = data.phone || 'N/A';
+                document.getElementById('modal-email').textContent = data.email || 'N/A';
+                document.getElementById('modal-parent-id').textContent = doc.id;
+            } else {
+                errorMsg.innerHTML = `ত্রুটি: Parent ID '${parentId}' এর জন্য কোনো ডকুমেন্ট পাওয়া যায়নি।`;
+                errorMsg.classList.remove('hidden');
+                document.getElementById('modal-father-name').textContent = 'তথ্য পাওয়া যায়নি';
+            }
+        } catch (error) {
+            console.error("Error fetching parent details:", error);
+            errorMsg.innerHTML = `ডেটা লোড করতে সমস্যা হয়েছে: ${error.message}`;
+            errorMsg.classList.remove('hidden');
+            document.getElementById('modal-father-name').textContent = 'ব্যর্থ হয়েছে';
+        }
+    }
+</script>
+</body>
+</html>
