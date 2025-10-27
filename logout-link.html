@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Logout</title>
+</head>
+<body>
+    <button onclick="logoutUser()" style="
+        background: red; 
+        color: white; 
+        padding: 10px 20px; 
+        border: none; 
+        border-radius: 5px; 
+        cursor: pointer;
+    ">
+        Logout
+    </button>
+
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    
+    <script>
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAjoRYAXQa4J43L4oLmHmUoK7ZqMKCdrxI",
+            authDomain: "programme-7eb45.firebaseapp.com",
+            projectId: "programme-7eb45",
+            storageBucket: "programme-7eb45.firebasestorage.app",
+            messagingSenderId: "431090813085",
+            appId: "1:431090813085:web:496fc0d8bb5e57af53ec74"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        function logoutUser() {
+            if(confirm('Logout korben?')) {
+                firebase.auth().signOut()
+                    .then(() => {
+                        localStorage.clear();
+                        alert('Logout successful!');
+                        window.location.href = 'admin-login.html';
+                    })
+                    .catch(error => {
+                        alert('Logout error: ' + error.message);
+                    });
+            }
+        }
+    </script>
+</body>
+</html>
